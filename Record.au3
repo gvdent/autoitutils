@@ -25,6 +25,14 @@ HotKeySet("{NUMPAD5}", "MoveRightClick")          ; Record a right click at the 
 
 Global $file = FileOpen("MouseTrackOut.au3", 2)
 
+; Globals related to continuous mouse movement and speed.
+; The idea is that mouse speed should vary depending on distance
+; travelled in the interval, so speed seems natural.
+Global $recordInterval = 100
+Global $speedFactor = 120
+Global $minSpeed = 100
+Global $maxSpeed = 5
+
 ; Note that this version is programmed to record window local coordinates.
 ; This can be changed by removing/altering the following lines.
 Opt("MouseCoordMode", 2)
@@ -34,14 +42,14 @@ FileWriteLine($file, 'Opt("MouseCoordMode", 2)')
 Global $exit = 0 ; Exit the script
 Global $stop = 0 ; Stop recording
 Global $title = ""
-
+Global $previousPos[2] = [ -1, -1 ] ; For calculating speed in continuous move mode, may become a problem with relative coords
 Func Start()
    HotKeySet("{HOME}", "End")
    FileWriteLine($file, "; Starting recording")
    $stop = 0
    While $stop == 0
 	  WriteMouseMove()
-	  Sleep(100)
+	  Sleep($recordInterval)
    WEnd
 EndFunc
 
@@ -62,7 +70,25 @@ EndFunc
 Func WriteMouseMove()
    SetActiveWindow()
    Local $pos = MouseGetPos()
-   FileWriteLine($file, "MouseMove(" & $pos[0] & ", " & $pos[1] & ")")
+   FileWriteLine($file, "MouseMove(" & $pos[0] & ", " & $pos[1] & ", " & CalculateSpeed($pos) & ")")
+EndFunc
+
+Func CalculateSpeed($pos)
+   Local $result = 10
+   
+   If $previousPos[0] <> -1 Then
+	  Local $distance = Sqrt((($previousPos[0] - $pos[0]) ^ 2) + (($previousPos[1] - $pos[1]) ^ 2))
+	  $result = 100 - $speedFactor * $distance / $recordInterval
+	  If $result > 100 Then
+		 $result = 100
+	  ElseIf $result < 5 Then
+		 $result = 5
+	  EndIf
+   EndIf
+
+   $previousPos = $pos
+   
+   Return $result
 EndFunc
 
 Func LeftClick()
