@@ -22,6 +22,9 @@ HotKeySet("{NUMPAD1}", "LeftClick")               ; Record a left click, but not
 HotKeySet("{NUMPAD2}", "RightClick")              ; Record a right click, but not the location
 HotKeySet("{NUMPAD4}", "MoveLeftClick")           ; Record a left click at the location
 HotKeySet("{NUMPAD5}", "MoveRightClick")          ; Record a right click at the location
+HotKeySet("{NUMPAD7}", "TopLeft")                 ; Record the top left of a rectangle
+HotKeySet("{NUMPAD8}", "BottomRight")             ; Record the bottom right of a rectangle
+HotKeySet("{NUMPAD9}", "RecordColor")             ; Record the color at a location
 
 Global $file = FileOpen("MouseTrackOut.au3", 2)
 
@@ -43,6 +46,8 @@ Global $exit = 0 ; Exit the script
 Global $stop = 0 ; Stop recording
 Global $title = ""
 Global $previousPos[2] = [ -1, -1 ] ; For calculating speed in continuous move mode, may become a problem with relative coords
+Global $topLeft[2] = [ -1, -1 ]
+
 Func Start()
    HotKeySet("{HOME}", "End")
    FileWriteLine($file, "; Starting recording")
@@ -64,7 +69,22 @@ Func SetActiveWindow()
 	  $title = $newTitle
 	  FileWriteLine($file, 'WinActivate("' & $title & '")')
 	  FileWriteLine($file, 'WinWaitActive("' & $title & '")')
-   EndIf
+	  EndIf
+EndFunc
+
+Func RecordColor()
+   Local $pos = MouseGetPos()
+   Local $color = PixelGetColor($pos[0], $pos[1])
+   FileWriteLine($file, ";pos: [" & $pos[0] & ", " & $pos[1] & "] color: " & Hex($color, 6))
+EndFunc
+
+Func TopLeft()
+   $topLeft = MouseGetPos()
+EndFunc
+
+Func BottomRight()
+   Local $bottomRight = MouseGetPos()
+   FileWriteLine($file, "MouseClick('left', Random(" & $topLeft[0] & ", " & $bottomRight[0] & "), Random(" & $topLeft[1] & ", " & $bottomRight[1] & "), Random(7, 19))")
 EndFunc
 
 Func WriteMouseMove()
